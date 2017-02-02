@@ -1,0 +1,49 @@
+
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 2012
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Core", "Core\Core.csproj", "{B664AA58-C635-44C4-B3AA-207964CF0297}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DoodleSnake", "DoodleSnake\DoodleSnake.csproj", "{58A1D441-06F2-4EE0-9C50-79BDC62EAFF5}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "KfServer", "KfServer\KfServer.csproj", "{5D3FD7B7-8EA7-4BA9-B0A9-DC06708B6EA8}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Examples", "Examples", "{807605C2-BFEB-4BF9-BD8E-DBC84B0B988D}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|x86 = Debug|x86
+		Release|x86 = Release|x86
+		Debug|x64 = Debug|x64
+		Release|x64 = Release|x64
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{B664AA58-C635-44C4-B3AA-207964CF0297}.Debug|x86.ActiveCfg = Debug|x86
+		{B664AA58-C635-44C4-B3AA-207964CF0297}.Debug|x86.Build.0 = Debug|x86
+		{B664AA58-C635-44C4-B3AA-207964CF0297}.Release|x86.ActiveCfg = Release|x86
+		{B664AA58-C635-44C4-B3AA-207964CF0297}.Release|x86.Build.0 = Release|x86
+		{B664AA58-C635-44C4-B3AA-207964CF0297}.Debug|x64.ActiveCfg = Debug|x86
+		{B664AA58-C635-44C4-B3AA-207964CF0297}.Debug|x64.Build.0 = Debug|x86
+		{B664AA58-C635-44C4-B3AA-207964CF0297}.Release|x64.ActiveCfg = Release|x86
+		{B664AA58-C635-44C4-B3AA-207964CF0297}.Release|x64.Build.0 = Release|x86
+		{58A1D441-06F2-4EE0-9C50-79BDC62EAFF5}.Debug|x86.ActiveCfg = Debug|x86
+		{58A1D441-06F2-4EE0-9C50-79BDC62EAFF5}.Debug|x86.Build.0 = Debug|x86
+		{58A1D441-06F2-4EE0-9C50-79BDC62EAFF5}.Release|x86.ActiveCfg = Release|x86
+		{58A1D441-06F2-4EE0-9C50-79BDC62EAFF5}.Release|x86.Build.0 = Release|x86
+		{58A1D441-06F2-4EE0-9C50-79BDC62EAFF5}.Debug|x64.ActiveCfg = Debug|x86
+		{58A1D441-06F2-4EE0-9C50-79BDC62EAFF5}.Debug|x64.Build.0 = Debug|x86
+		{58A1D441-06F2-4EE0-9C50-79BDC62EAFF5}.Release|x64.ActiveCfg = Release|x86
+		{58A1D441-06F2-4EE0-9C50-79BDC62EAFF5}.Release|x64.Build.0 = Release|x86
+		{5D3FD7B7-8EA7-4BA9-B0A9-DC06708B6EA8}.Debug|x86.ActiveCfg = Debug|x86
+		{5D3FD7B7-8EA7-4BA9-B0A9-DC06708B6EA8}.Debug|x86.Build.0 = Debug|x86
+		{5D3FD7B7-8EA7-4BA9-B0A9-DC06708B6EA8}.Release|x86.ActiveCfg = Release|x86
+		{5D3FD7B7-8EA7-4BA9-B0A9-DC06708B6EA8}.Release|x86.Build.0 = Release|x86
+		{5D3FD7B7-8EA7-4BA9-B0A9-DC06708B6EA8}.Debug|x64.ActiveCfg = Debug|x86
+		{5D3FD7B7-8EA7-4BA9-B0A9-DC06708B6EA8}.Debug|x64.Build.0 = Debug|x86
+		{5D3FD7B7-8EA7-4BA9-B0A9-DC06708B6EA8}.Release|x64.ActiveCfg = Release|x86
+		{5D3FD7B7-8EA7-4BA9-B0A9-DC06708B6EA8}.Release|x64.Build.0 = Release|x86
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{58A1D441-06F2-4EE0-9C50-79BDC62EAFF5} = {807605C2-BFEB-4BF9-BD8E-DBC84B0B988D}
+		{5D3FD7B7-8EA7-4BA9-B0A9-DC06708B6EA8} = {807605C2-BFEB-4BF9-BD8E-DBC84B0B988D}
+	EndGlobalSection
+EndGlobal

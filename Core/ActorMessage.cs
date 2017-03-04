@@ -2,7 +2,7 @@
 using CUtil;
 
 namespace Core {
-	public struct ActorMessage {
+	public class ActorMessage {
 		public const int REQ = 0;
 		public const int REP = 1;
 		public const int CMD = 2;
@@ -43,5 +43,5 @@ namespace Core {
 	public class ActorRecv {
 		public ActorMessage Message    { get; set; }
 		public Action<object> Response { get; set; }
-	}	
+	}
 }

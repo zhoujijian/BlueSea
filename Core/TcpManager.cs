@@ -34,7 +34,8 @@ namespace Core.Net {
 
 	public class TcpManager : Actor {
 		private Socket listen;
-		private readonly ActorMessage TIMER;
+		private ActorMessage TIMER;
+		private Func<ChannelAgent> agentCreate;
 
 		private List<Socket> reads  = new List<Socket>();
 		private List<Socket> writes = new List<Socket>();
@@ -42,8 +43,8 @@ namespace Core.Net {
 		private List<SocketChannel> channels = new List<SocketChannel>();
 		private List<SocketChannel> errChans = new List<SocketChannel>();
 
-		public TcpManager() {
-			this.TIMER = new ActorMessage(ActorMessage.CMD, 0, Context.ID, Context.ID, ServerMessage.UPDATE, null);
+		public TcpManager(Func<ChannelAgent> agentCreate) {
+			this.agentCreate = agentCreate;
 		}
 
 		public void Start() {
@@ -51,7 +52,9 @@ namespace Core.Net {
 			listen.Bind(new IPEndPoint(IPAddress.Parse("127.0.0.1"), 8888));
 			listen.Listen(10); // backlog?
 
-			Context.System.Send(TIMER); // avoid timer GC
+			// avoid timer GC
+			TIMER = new ActorMessage(ActorMessage.CMD, 0, Context.ID, Context.ID, ServerMessage.UPDATE, null);
+			Context.System.Send(TIMER);
 		}
 
 		public void Send(int id, byte[] data) {
@@ -105,7 +108,7 @@ namespace Core.Net {
 			}
 
 			if (newsock != null) {
-				ActorContext agent = Context.System.RegActor(new ChannelAgent());
+				ActorContext agent = Context.System.RegActor(agentCreate());
 				IActorProxy proxy = ActorProxyFactory.Create(Context, agent.ID);
 				channels.Add(new SocketChannel(proxy, newsock));
 				CLogger.Log("[TcpManager]Accept new socket:{0}", proxy.Target);

@@ -1,5 +1,8 @@
 ﻿using System;
+using System.Threading;
+using System.Threading.Tasks;
 using Core;
+using Core.Net;
 
 public enum EHelloCode {
 	Start = 0
@@ -12,25 +15,32 @@ public class Helper {
 }
 
 public class Hello : Actor {
-	public override void Handle(ActorMessage message, Action<object> retback) {
-		message.Force<EHelloCode>(_ => {
+	public override Task HandleCommandAsync(ActorMessage cmd) {
+		cmd.Force<EHelloCode>(_ => {
+			Console.WriteLine("[Hello]Current Thread:" + Thread.CurrentThread.ManagedThreadId);
 			IActorProxy proxy = ActorProxyFactory.Create(Context, Helper.WELCOME);
 			Console.WriteLine("[Hello]Send Request Message ====>");
+
 			proxy.SendReq("Hello", "Hello, BlueSea", reply1 => {
+				Console.WriteLine("[Hello]Current Thread:" + Thread.CurrentThread.ManagedThreadId);
 				Console.WriteLine("[Hello]<==== Receive Response: " + reply1);
+
 				proxy.SendReq("Hello", "[Hello]Again Send Request Message ====>", reply2 => {
+					Console.WriteLine("[Hello]Current Thread:" + Thread.CurrentThread.ManagedThreadId);
 					Console.WriteLine("[Hello]<==== Again Receive Response: " + reply2);
 				});
 			});
 		});
+		return Task.CompletedTask;
 	}
 }
 
 public class Welcome : Actor {
-	public override void Handle(ActorMessage message, Action<object> retback) {
-		Console.WriteLine("[Welcome]<==== Other's Request: " + message.Content);
+	public override Task<object> HandleRequestAsync(ActorMessage req) {
+		Console.WriteLine("[Welcome]Current Thread:" + Thread.CurrentThread.ManagedThreadId);
+		Console.WriteLine("[Welcome]<==== Other's Request: " + req.Content);
 		Console.WriteLine("[Welcome]Response to other ====>");
-		retback("You are welcome!");
+		return Task.FromResult<object>("You are welcome!");
 	}
 }
 
@@ -49,11 +59,5 @@ class MainClass {
 		proxy.SendCmd("Start", EHelloCode.Start);
 
 		Console.ReadLine();
-	}
-
-	private static void exampleCar() {
-//		Launcher launcher = new Launcher();
-//		ActorSystem system = launcher.Launch();
-//		system.CreateRef(CarActorid.CARROOM, new CarRoom(CarActorid.CARROOM, system));
 	}
 }

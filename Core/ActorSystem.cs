@@ -8,14 +8,9 @@ namespace Core {
 		public const int PRESERVE = 1000;
 
 		private int actorid = PRESERVE;
-		private Queue<ActorMessage> messages = new Queue<ActorMessage>();
-		private List<ActorMessage> lexec = new List<ActorMessage>();
-		private Dictionary<int, ActorContext> contexts = new Dictionary<int, ActorContext>();
+		private Dictionary<int, IActorContainer> containers = new Dictionary<int, IActorContainer>();
 
-		public void Start() {
-			Thread exec = new Thread(execMessage);
-			exec.Start();
-		}
+		public void Start() { }
 
 		public int NextActorid() {
 			int nextid = Interlocked.Increment(ref actorid);
@@ -27,47 +22,23 @@ namespace Core {
 		}
 
 		public ActorContext RegActor(int id, IActor actor) {
-			ActorContext ctx = new ActorContext(id, actor, this);
-			actor.Context = ctx;
+			ActorContext context = new ActorContext(id, actor, this);
+			actor.Context = context;
 
-			lock(contexts) {
-				CAssert.Assert(!contexts.ContainsKey(id));
-				contexts.Add(id, ctx);
+			lock(containers) {
+				CAssert.Assert(!containers.ContainsKey(id));
+				containers.Add(id, new ActorContainer(context));
 			}
-
-			return ctx;
+			return context;
 		}
 
-		public void Send(ActorMessage message) {
-			lock(messages) {
-				messages.Enqueue(message);
+		public void Send(ActorMessage msg) {
+			IActorContainer container = null;
+			lock(containers) {
+				containers.TryGetValue(msg.Target, out container);
 			}
-		}
-
-		private void execMessage() {
-			while(true) {
-				lexec.Clear();
-
-				lock(messages) {
-					while(messages.Count > 0) {
-						lexec.Add(messages.Dequeue());
-					}
-				}
-
-				if (lexec.Count > 0) {
-					lock (contexts) {
-						foreach (ActorMessage msg in lexec) {
-							ActorContext context = null;
-							if (!contexts.TryGetValue(msg.Target, out context)) {
-								throw new Exception("cannot find actor context:" + msg.Target);
-							}
-							context.RecvCall(msg);
-						}
-					}
-				}
-
-				Thread.Sleep(0);
-			}
+			CAssert.Assert(container != null, msg.Target.ToString());
+			container.Post(msg);
 		}
 	}
 }

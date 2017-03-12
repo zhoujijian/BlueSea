@@ -83,6 +83,7 @@
     <Compile Include="Launcher.cs" />
     <Compile Include="ActorContext.cs" />
     <Compile Include="ActorMailbox.cs" />
+    <Compile Include="ActorWork.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />

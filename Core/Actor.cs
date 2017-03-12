@@ -33,14 +33,10 @@ namespace Core {
 	public interface IActor {
 		ActorContext Context { get; set; }
 		void Handle(ActorMessage message, Action<object> retback);
-		Task HandleCommandAsync(ActorMessage cmd);
-		Task<object> HandleRequestAsync(ActorMessage req);
 	}
 
 	public class Actor : IActor {
 		public ActorContext Context { get; set; }
 		public virtual void Handle(ActorMessage message, Action<object> retback) { }
-		public virtual Task HandleCommandAsync(ActorMessage cmd) { return Task.CompletedTask; }
-		public virtual Task<object> HandleRequestAsync(ActorMessage req) { return Task.FromResult<object>(null); }
 	}
 }

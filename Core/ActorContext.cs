@@ -11,6 +11,7 @@ namespace Core {
 		public int          ID      { get; private set; }
 		public IActor       Self    { get; private set; }
 		public ActorSystem  System  { get; private set; }
+		public ActorMailbox Mailbox { get; private set; }
 
 		public ActorContext(int id, IActor self, ActorSystem system) {
 			ID = id;
@@ -54,30 +55,6 @@ namespace Core {
 					handler(msg.Content);
 				}
 			}
-		}
-
-		public async Task<object> RecvCallAsync(ActorMessage msg) {
-			checkMessage(msg);
-
-			object ret = null;
-			if (msg.Kind == ActorMessage.CMD) {
-				await Self.HandleCommandAsync(msg);
-			}
-			else if (msg.Kind == ActorMessage.REQ) {
-				ret = await Self.HandleRequestAsync(msg);
-			}
-			else {
-				CAssert.Assert(msg.Kind == ActorMessage.REP);
-				Action<object> handler = responses[msg.Session];
-				responses.Remove(msg.Session);
-
-				// async support ?
-				if (handler != null) {
-					handler(msg.Content);
-				}
-			}
-
-			return ret;
 		}
 
 		private void checkMessage(ActorMessage msg) {

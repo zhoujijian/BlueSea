@@ -1,8 +1,6 @@
 ﻿using System;
 using System.Threading;
-using System.Threading.Tasks;
 using Core;
-using Core.Net;
 
 public enum EHelloCode {
 	Start = 0
@@ -15,32 +13,33 @@ public class Helper {
 }
 
 public class Hello : Actor {
-	public override Task HandleCommandAsync(ActorMessage cmd) {
-		cmd.Force<EHelloCode>(_ => {
+	public override void Handle(ActorMessage message, Action<object> retback) {
+		message.Force<EHelloCode>(async _ => {
+			Console.WriteLine("<================ Async Handle ================>");
+
 			Console.WriteLine("[Hello]Current Thread:" + Thread.CurrentThread.ManagedThreadId);
 			IActorProxy proxy = ActorProxyFactory.Create(Context, Helper.WELCOME);
 			Console.WriteLine("[Hello]Send Request Message ====>");
 
-			proxy.SendReq("Hello", "Hello, BlueSea", reply1 => {
-				Console.WriteLine("[Hello]Current Thread:" + Thread.CurrentThread.ManagedThreadId);
-				Console.WriteLine("[Hello]<==== Receive Response: " + reply1);
+			string reply1 = await proxy.SendReqAsync<string>("Hello", "Hello, BlueSea");
+			Console.WriteLine("[Hello]Current Thread:" + Thread.CurrentThread.ManagedThreadId);
+			Console.WriteLine("[Hello]<==== Receive Response: " + reply1);
 
-				proxy.SendReq("Hello", "[Hello]Again Send Request Message ====>", reply2 => {
-					Console.WriteLine("[Hello]Current Thread:" + Thread.CurrentThread.ManagedThreadId);
-					Console.WriteLine("[Hello]<==== Again Receive Response: " + reply2);
-				});
-			});
+			string reply2 = await proxy.SendReqAsync<string>("Hello", "[Hello]Again Send Request Message ====>");
+			Console.WriteLine("[Hello]Current Thread:" + Thread.CurrentThread.ManagedThreadId);
+			Console.WriteLine("[Hello]<==== Again Receive Response: " + reply2);
+
+			Console.WriteLine("<================ Async Handle ================>");
 		});
-		return Task.CompletedTask;
 	}
 }
 
 public class Welcome : Actor {
-	public override Task<object> HandleRequestAsync(ActorMessage req) {
+	public override void Handle(ActorMessage message, Action<object> retback) {
 		Console.WriteLine("[Welcome]Current Thread:" + Thread.CurrentThread.ManagedThreadId);
-		Console.WriteLine("[Welcome]<==== Other's Request: " + req.Content);
+		Console.WriteLine("[Welcome]<==== Other's Request: " + message.Content);
 		Console.WriteLine("[Welcome]Response to other ====>");
-		return Task.FromResult<object>("You are welcome!");
+		retback("You are welcome!");		
 	}
 }
 

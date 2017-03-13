@@ -44,7 +44,7 @@ namespace Core.Net {
 			});
 			CLogger.Log("[Agent{0}]Send json to client:{1}", Context.ID, textServer);
 
-			proxySocket.SendCmd(ServerMessage.SENDDATA, new ServerMessage {
+			proxySocket.SendCmd(ServerMessage.SENDDATA, new ServerData {
 				Chanid = Context.ID,
 				Data   = Encoding.UTF8.GetBytes(textServer)
 			});

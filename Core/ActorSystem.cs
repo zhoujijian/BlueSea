@@ -22,14 +22,20 @@ namespace Core {
 		}
 
 		public ActorContext RegActor(int id, IActor actor) {
+			ActorContext context = CreateContext(id, actor);
+			ActorContainer container = new ActorContainer(context);
+			addContainer(container);
+			return context;
+		}
+
+		public ActorContext CreateContext(int id, IActor actor) {
 			ActorContext context = new ActorContext(id, actor, this);
 			actor.Context = context;
-
-			lock(containers) {
-				CAssert.Assert(!containers.ContainsKey(id));
-				containers.Add(id, new ActorContainer(context));
-			}
 			return context;
+		}
+
+		public void RegContainer(IActorContainer container) {
+			addContainer(container);
 		}
 
 		public void Send(ActorMessage msg) {
@@ -39,6 +45,14 @@ namespace Core {
 			}
 			CAssert.Assert(container != null, msg.Target.ToString());
 			container.Post(msg);
+		}
+
+		private void addContainer(IActorContainer container) {
+			int id = container.Context.ID;
+			lock(containers) {
+				CAssert.Assert(!containers.ContainsKey(id));
+				containers.Add(id, container);
+			}			
 		}
 	}
 }

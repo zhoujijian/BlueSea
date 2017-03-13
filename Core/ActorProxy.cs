@@ -4,6 +4,7 @@ namespace Core {
 	public interface IActorProxy {
 		int Target { get; }
 		void SendReq(string method, object param, Action<object> retback = null);
+		ActorWork<TResult> SendReqAsync<TResult>(string method, object param);
 		void SendCmd(string method, object param);
 	}
 
@@ -24,6 +25,14 @@ namespace Core {
 
 		public void SendCmd(string method, object param) {
 			source.SendCall(ActorMessage.CMD, target, method, param, null);
+		}
+
+		public ActorWork<TResult> SendReqAsync<TResult>(string method, object param) {
+			ActorWork<TResult> awaitor = new ActorWork<TResult>();
+			source.SendCall(ActorMessage.REQ, target, method, param, ret => {
+				awaitor.CallContinue(ret);
+			});
+			return awaitor;
 		}
 	}
 

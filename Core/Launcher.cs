@@ -10,9 +10,9 @@ namespace Core {
 	public class Launcher {
 		public ActorSystem Launch(System.Func<ChannelAgent> agentCreate) {
 			ActorSystem system = new ActorSystem();
-			ActorContext server = system.RegActor(Actorid.TCPMANAGER, new TcpManager(agentCreate));
-			IActorProxy proxy = ActorProxyFactory.Create(server, Actorid.TCPMANAGER); // TODO: source context
-			proxy.SendCmd(ServerMessage.START, null);
+			SocketContainer container = new SocketContainer(system, agentCreate);
+			system.RegContainer(container);
+			IActorProxy proxy = ActorProxyFactory.Create(container.Context, Actorid.TCPMANAGER); // TODO: source context
 			system.Start();
 
 			return system;

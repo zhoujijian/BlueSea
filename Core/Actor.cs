@@ -4,7 +4,6 @@ using System.Threading.Tasks;
 namespace Core {
 	public interface IActorContainer {
 		ActorContext Context { get; }
-		ActorMailbox Mailbox { get; }
 		void Post(ActorMessage message);
 	}
 
@@ -37,6 +36,6 @@ namespace Core {
 
 	public class Actor : IActor {
 		public ActorContext Context { get; set; }
-		public virtual void Handle(ActorMessage message, Action<object> retback) { }
+		public virtual void Handle(ActorMessage msg, Action<object> retback) { }
 	}
 }

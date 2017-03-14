@@ -26,13 +26,13 @@ namespace Core.Net {
 		public Action<int, string, Action<object>> OnData { get; set; }
 		public Action<string, object> OnNotify { get; set; }
 
-		public override void Handle(ActorMessage message, Action<object> retback) {
-			object data = message.Content;
-			switch(message.Method) {
+		public override void Handle(ActorMessage msg, Action<object> retback) {
+			object data = msg.Content;
+			switch(msg.Method) {
 				case AgentMessage.OPEN:   { onOpen();         break; }
 				case AgentMessage.CLIENT: { onRecvData(data); break; }
 				case AgentMessage.CLOSE:  { onClose();        break; }
-				default: { onNotify(message.Method, data); break; }
+				default: { onNotify(msg.Method, data); break; }
 			}
 		}
 

@@ -39,7 +39,7 @@ namespace Core.Net {
 			this.proxy  = proxy;
 			this.socket = socket;
 			this.listening = listening;
-			if (listening) {
+			if (!listening) {
 				send = new SocketBuffer();
 				recv = new SocketBuffer();
 			}
@@ -60,9 +60,11 @@ namespace Core.Net {
 
 		public void Start() {
 			Thread thread = new Thread(() => {
-				handle();
-				tcp.Update();
-				Thread.Sleep(10);
+				while (true) {
+					handle();
+					tcp.Update();
+					Thread.Sleep(10);
+				}
 			});
 			thread.Start();
 		}
@@ -92,10 +94,9 @@ namespace Core.Net {
 		private Func<ChannelAgent> agentCreate;
 		private Action handler;
 
-		private List<Socket> reads   = new List<Socket>();
-		private List<Socket> writes  = new List<Socket>();
-		private List<Socket> errors  = new List<Socket>();
-		private List<Socket> sockets = new List<Socket>();
+		private List<Socket> reads  = new List<Socket>();
+		private List<Socket> writes = new List<Socket>();
+		private List<Socket> errors = new List<Socket>();
 
 		private List<SocketChannel> channels = new List<SocketChannel>();
 		private List<SocketChannel> errChans = new List<SocketChannel>();
@@ -103,16 +104,6 @@ namespace Core.Net {
 		public TcpManager(Action handler, Func<ChannelAgent> agentCreate) {
 			this.handler = handler;
 			this.agentCreate = agentCreate;
-		}
-
-		public void Start() {
-			Thread thread = new Thread(() => {
-				if (handler != null) {
-					handler();
-				}
-				Update();
-				Thread.Sleep(10);
-			});
 		}
 
 		public void Listen(ServerListen svr) {
@@ -190,23 +181,25 @@ namespace Core.Net {
 				reads.Add(chan.socket);
 			}
 
-			Socket.Select(reads, null, null, 1); // check parameter [microSeconds] => how many is proper?
 			if (reads.Count > 0) {
-				foreach (Socket read in reads) {
-					SocketChannel channel = channels.Find(chan => chan.socket == read);
-					if (channel.listening) {
-						onAccept(channel.socket);
-					} else {
-						onSocket(read, onRecv);
+				Socket.Select(reads, null, null, 1); // check parameter [microSeconds] => how many is proper?
+				if (reads.Count > 0) {
+					foreach (Socket read in reads) {
+						SocketChannel channel = channels.Find(chan => chan.socket == read);
+						if (channel.listening) {
+							onAccept(channel.socket);
+						} else {
+							onSocket(read, onRecv);
+						}
 					}
-				}
+				}				
 			}
 		}
 
 		private void onWrite() {
 			writes.Clear();
 			foreach (SocketChannel chan in channels) {
-				if (chan.send.buffers.Count > 0) {
+				if (!chan.listening && chan.send.buffers.Count > 0) {
 					writes.Add(chan.socket);
 				}
 			}
@@ -227,11 +220,13 @@ namespace Core.Net {
 				errors.Add(chan.socket);
 			}
 
-			Socket.Select(null, null, errors, 1);
 			if (errors.Count > 0) {
-				foreach (Socket error in errors) {
-					SocketChannel chan = channels.Find(x => x.socket == error);
-					closeChannel(chan);
+				Socket.Select(null, null, errors, 1);
+				if (errors.Count > 0) {
+					foreach (Socket error in errors) {
+						SocketChannel chan = channels.Find(x => x.socket == error);
+						closeChannel(chan);
+					}
 				}
 			}
 		}

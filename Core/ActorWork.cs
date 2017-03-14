@@ -29,4 +29,28 @@ namespace Core {
 			}
 		}
 	}
+
+	public class ActorWork : INotifyCompletion {
+		private Action continuation;
+
+		public bool IsCompleted { get; private set; }
+		public void GetResult() { }
+		public ActorWork GetAwaiter() { return this; }
+
+		public void OnCompleted(Action continuation) {
+			this.continuation = continuation;
+		}
+
+		// executed by only 1 thread once
+		public void CallContinue() {
+			CAssert.Assert(!IsCompleted);
+			CAssert.Assert(continuation != null);
+
+			IsCompleted = true;
+
+			if (continuation != null) {
+				continuation();
+			}
+		}
+	}
 }

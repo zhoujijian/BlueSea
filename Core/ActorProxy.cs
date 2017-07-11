@@ -3,11 +3,12 @@
 namespace Core {
 	public interface IActorProxy {
 		int Target { get; }
-		void SendReq(string method, object param, Action<object> retback = null);
-		ActorWork SendReqAsync(string method, object param);
-		ActorWork<TResult> SendReqAsync<TResult>(string method, object param);
-		void SendCmd(string method, object param);
+		ActorWork SendReqAsync(string method, params object[] parameters);
+		ActorWork<TResult> SendReqAsync<TResult>(string method, params object[] parameters);
+		void SendCmd(string method, params object[] parameters);
 	}
+
+    public class PipelineAttribute : Attribute { }
 
 	public class ActorProxy : IActorProxy {
 		private ActorContext source;
@@ -20,28 +21,32 @@ namespace Core {
 			target = tartid;
 		}
 
-		public void SendReq(string method, object param, Action<object> retback = null) {
-			source.SendCall(ActorMessage.REQ, target, method, param, retback);
-		}
-
-		public void SendCmd(string method, object param) {
+		public void SendCmd(string method, params object[] param) {
 			source.SendCall(ActorMessage.CMD, target, method, param, null);
 		}
 
-		public ActorWork SendReqAsync(string method, object param) {
+		public ActorWork SendReqAsync(string method, params object[] parameters) {
 			ActorWork awaitor = new ActorWork();
-			source.SendCall(ActorMessage.REQ, target, method, param, _ => {
+			source.SendCall(ActorMessage.REQ, target, method, parameters, _ => {
 				awaitor.CallContinue();
 			});
 			return awaitor;
 		}
 
-		public ActorWork<TResult> SendReqAsync<TResult>(string method, object param) {
+		public ActorWork<TResult> SendReqAsync<TResult>(string method, params object[] parameters) {
 			ActorWork<TResult> awaitor = new ActorWork<TResult>();
-			source.SendCall(ActorMessage.REQ, target, method, param, ret => {
+			source.SendCall(ActorMessage.REQ, target, method, parameters, ret => {
 				awaitor.CallContinue(ret);
 			});
 			return awaitor;
+		}
+	}
+
+	public class ProxyNameAttribute : Attribute {
+		public string Name { get; private set; }
+
+		public ProxyNameAttribute(string name) {
+			Name = name;
 		}
 	}
 

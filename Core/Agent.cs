@@ -54,15 +54,11 @@ namespace Core.Net {
 			CLogger.Log("[Agent]Open a new client");
 
 			proxySocket = ActorProxyFactory.Create(Context, Actorid.TCPMANAGER);
-			if (OnStart != null) {
-				OnStart();
-			}
+            OnStart?.Invoke();
 		}
 
 		private void onNotify(string method, object data) {
-			if (OnNotify != null) {
-				OnNotify(method, data);
-			}
+            OnNotify?.Invoke(method, data);
 		}
 
 		private void onRecvData(object data) {
@@ -72,18 +68,14 @@ namespace Core.Net {
 
 			// if callback : request => response
 			// else        : command => no-response
-			if (OnData != null) {
-				OnData(client.message, textClient, reply => {
-					SendClient(client.message, client.session, reply);
-				});
-			}
+            OnData?.Invoke(client.message, textClient, reply => {
+				SendClient(client.message, client.session, reply);
+			});
 		}
 
 		private void onClose() {
 			CLogger.Log("[Agent]Close client");
-			if (OnClose != null) {
-				OnClose();
-			}
+            OnClose?.Invoke();
 		}
 	}
 }

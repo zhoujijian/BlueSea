@@ -1,40 +1,25 @@
 ﻿using System;
+using System.Reflection;
+using CUtil;
 
 namespace Core {
-	public interface IActorContainer {
-		ActorContext Context { get; }
-		void Post(ActorMessage message);
-	}
-
-	public class ActorContainer : IActorContainer {
-		public ActorContext Context { get; private set; }
-		public ActorMailbox Mailbox { get; private set; }
-
-		public ActorContainer(ActorContext context) {
-			this.Context = context;
-			this.Mailbox = new ActorMailbox(context);
-		}
-
-		public void Post(ActorMessage msg) {
-			Mailbox.Post(msg);
-		}
-	}
-
-	// TODO: communicate to remote
-	public class RemoteContainer : IActorContainer {
-		public ActorContext Context { get; private set; }
-		public ActorMailbox Mailbox { get; private set; }
-
-		public void Post(ActorMessage msg) { }
-	}
-
 	public interface IActor {
 		ActorContext Context { get; set; }
-		void Handle(ActorMessage message, Action<object> retback);
+        void Start();
+		void Handle(ActorMessage msg, Action<object> retback);
 	}
 
 	public class Actor : IActor {
 		public ActorContext Context { get; set; }
-		public virtual void Handle(ActorMessage msg, Action<object> retback) { }
+        protected Action<object> retback;
+
+        public virtual void Start() { }
+
+		public virtual void Handle(ActorMessage msg, Action<object> retback) {
+            this.retback = retback;
+            MethodInfo method = GetType().GetMethod(msg.Method, BindingFlags.Public | BindingFlags.Instance);
+            method.Invoke(this, msg.Parameters);
+            this.retback = null;
+        }
 	}
 }

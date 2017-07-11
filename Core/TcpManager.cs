@@ -34,6 +34,7 @@ namespace Core.Net {
 		public bool listening;
 		public SocketBuffer send;
 		public SocketBuffer recv;
+        public bool error;
 
 		public SocketChannel(IActorProxy proxy, Socket socket, bool listening) {
 			this.proxy  = proxy;
@@ -46,63 +47,69 @@ namespace Core.Net {
 		}
 	}
 
-	public class SocketContainer : IActorContainer {
-		private Queue<ActorMessage> msgQ  = new Queue<ActorMessage>();
-		private Queue<ActorMessage> helpQ = new Queue<ActorMessage>();
-		private TcpManager tcp;
+    public class SocketMailbox : IActorMailbox {
+        private Queue<ActorMessage> msgQ  = new Queue<ActorMessage>();
+        private Queue<ActorMessage> helpQ = new Queue<ActorMessage>();
+        private readonly TcpManager tcp;
 
-		public ActorContext Context { get; private set; }
+        public int Id { get { return Context.ID; } }
+        public int MessagesCount { get { lock (msgQ) { return msgQ.Count; } } }
+        public ActorContext Context { get; private set; }
 
-		public SocketContainer(ActorSystem system, Func<ChannelAgent> agentCreate) {
-			tcp = new TcpManager(handle, agentCreate);
-			Context = system.CreateContext(Actorid.TCPMANAGER, tcp);
-		}
+        public SocketMailbox(ActorSystem system, Func<ChannelAgent> agentCreate) {
+            tcp = new TcpManager(agentCreate);
+            Context = system.CreateContext(Actorid.TCPMANAGER, tcp);
+        }
 
-		public void Start() {
-			Thread thread = new Thread(() => {
-				while (true) {
-					handle();
-					tcp.Update();
-					Thread.Sleep(10);
-				}
-			});
-			thread.Start();
-		}
+        public void Start() {
+            Thread thread = new Thread(() => {
+                while (true) {
+                    handle();
+                    tcp.UpdateMany();
+                    Thread.Sleep(10);
+                }
+            });
+            thread.Start();
+        }
 
-		public void Post(ActorMessage msg) {
-			lock(msgQ) {
-				msgQ.Enqueue(msg);
-			}
-		}
+        public void Post(ActorMessage msg) {
+            lock (msgQ) {
+                msgQ.Enqueue(msg);
+            }
+        }
 
-		private void handle() {
-			CAssert.Assert(helpQ.Count <= 0);
+        public void Clear() {
+            lock (msgQ) {
+                msgQ.Clear();
+            }
+            // do not handle helpQ: TODO => thread safety ?
+        }
 
-			lock(msgQ) {
-				while(msgQ.Count > 0) {
-					helpQ.Enqueue(msgQ.Dequeue());
-				}
-			}
-			while(helpQ.Count > 0) {
-				ActorMessage msg = helpQ.Dequeue();
-				Context.RecvCall(msg);
-			}			
-		}
-	}
+        private void handle() {
+            CAssert.Assert(helpQ.Count <= 0);
+
+            lock (msgQ) {
+                while (msgQ.Count > 0) {
+                    helpQ.Enqueue(msgQ.Dequeue());
+                }
+            }
+            while (helpQ.Count > 0) {
+                ActorMessage msg = helpQ.Dequeue();
+                Context.RecvCall(msg);
+            }
+        }
+    }
 
 	public class TcpManager : Actor {
 		private Func<ChannelAgent> agentCreate;
-		private Action handler;
-
 		private List<Socket> reads  = new List<Socket>();
 		private List<Socket> writes = new List<Socket>();
 		private List<Socket> errors = new List<Socket>();
 
 		private List<SocketChannel> channels = new List<SocketChannel>();
-		private List<SocketChannel> errChans = new List<SocketChannel>();
+        private List<SocketChannel> errorChannels = new List<SocketChannel>();
 
-		public TcpManager(Action handler, Func<ChannelAgent> agentCreate) {
-			this.handler = handler;
+		public TcpManager(Func<ChannelAgent> agentCreate) {
 			this.agentCreate = agentCreate;
 		}
 
@@ -111,7 +118,8 @@ namespace Core.Net {
 			IActorProxy proxy = ActorProxyFactory.Create(Context, svr.ActorId);
 			channels.Add(new SocketChannel(proxy, socket, true));
 
-			socket.Bind(new IPEndPoint(IPAddress.Parse(svr.Ip), svr.Port));
+			socket.Bind(new IPEndPoint(IPAddress.Any, svr.Port));
+            // socket.Bind(new IPEndPoint(IPAddress.Parse(svr.Ip), svr.Port));
 			socket.Listen(10); // backlog?
 		}
 
@@ -122,8 +130,11 @@ namespace Core.Net {
 			Array.Copy(svr.Data, 0, buf, 2, svr.Data.Length);
 
 			SocketChannel chan = channels.Find(x => x.proxy.Target == svr.Chanid);
-			CAssert.Assert(chan != null);
-			chan.send.buffers.Add(buf);
+			if (chan == null) {
+			    CLogger.Log("[TcpManager]SocketChannel({0}) not found, disconnected?", svr.Chanid);
+			} else {
+			    chan.send.buffers.Add(buf);
+			}
 		}
 
 		public void Update() {
@@ -132,14 +143,58 @@ namespace Core.Net {
 			onError();
 		}
 
+        public void UpdateMany() {
+            reads.Clear();
+            writes.Clear();
+            errors.Clear();
+            errorChannels.Clear();
+
+            foreach (SocketChannel channel in channels) {
+                CAssert.Assert(!channel.error);
+                reads.Add(channel.socket);
+                if (!channel.listening && channel.send.buffers.Count > 0) {
+                    writes.Add(channel.socket);
+                }
+                errors.Add(channel.socket);
+            }
+
+            if (reads.Count > 0 || writes.Count > 0 || errors.Count > 0) {
+                Socket.Select(reads, writes, errors, 1);
+
+                if (reads.Count > 0) {
+                    foreach (Socket read in reads) {
+                        SocketChannel channel = channels.Find(chan => chan.socket == read);
+                        if (channel.listening) {
+                            onAccept(channel.socket);
+                        } else {
+                            onSocket(read, errorChannels, onRecv);
+                        }
+                    }
+                }
+
+                if (writes.Count > 0) {
+                    foreach (Socket write in writes) {
+                        onSocket(write, errorChannels, onSend);
+                    }
+                }
+
+                if (errors.Count > 0) {
+                    foreach (Socket error in errors) {
+                        SocketChannel chan = channels.Find(x => x.socket == error);
+                    removeChannel(chan);
+                }
+            }
+            }
+        }
+
 		public void Close(int chanid) {
 			for(int i=0; i<channels.Count; ++i) {
 				SocketChannel chan = channels[i];
 				if (chan.proxy.Target == chanid) {
-					chan.socket.Close();
-					channels.RemoveAt(i);
-					CLogger.Log("[TcpManager]Remove socket(id:{0})", chan.proxy.Target);
-					break;
+				    chan.socket.Shutdown(SocketShutdown.Both);
+				    channels.RemoveAt(i);
+				    CLogger.Log("[TcpManager]Remove socket(id:{0})", chan.proxy.Target);
+				    break;
 				}
 			}
 		}
@@ -166,7 +221,7 @@ namespace Core.Net {
 			}
 
 			if (newsock != null) {
-				ActorContext agent = Context.System.RegActor(agentCreate());
+                ActorContext agent = Context.System.Launch(Context.System.NextActorid(), agentCreate());
 				IActorProxy proxy = ActorProxyFactory.Create(Context, agent.ID);
 				channels.Add(new SocketChannel(proxy, newsock, false));
 				CLogger.Log("[TcpManager]Accept new socket:{0}", proxy.Target);
@@ -189,7 +244,7 @@ namespace Core.Net {
 						if (channel.listening) {
 							onAccept(channel.socket);
 						} else {
-							onSocket(read, onRecv);
+							onSocket(read, errorChannels, onRecv);
 						}
 					}
 				}				
@@ -208,7 +263,7 @@ namespace Core.Net {
 				Socket.Select(null, writes, null, 1);
 				if (writes.Count > 0) {
 					foreach (Socket write in writes) {
-						onSocket(write, onSend);
+                        onSocket(write, errorChannels, onSend);
 					}
 				}
 			}
@@ -225,7 +280,7 @@ namespace Core.Net {
 				if (errors.Count > 0) {
 					foreach (Socket error in errors) {
 						SocketChannel chan = channels.Find(x => x.socket == error);
-						closeChannel(chan);
+						removeChannel(chan);
 					}
 				}
 			}
@@ -237,12 +292,18 @@ namespace Core.Net {
 			CAssert.Assert(errors.Count <= 0);
 		}
 
-		private void onRecv(SocketChannel chan) {
+        private void addErrorChannel(List<SocketChannel> errChans, SocketChannel chan) {
+            CAssert.Assert(!chan.error);
+            chan.error = true;
+            errChans.Add(chan);
+        }
+
+		private void onRecv(List<SocketChannel> errChans, SocketChannel chan) {
 			Socket socket = chan.socket;
 			CAssert.Assert(socket.Available >= 0);
 			if (socket.Available <= 0) {
 				CLogger.Log("[TcpManager]Client {0} disconnect", chan.proxy.Target);
-				errChans.Add(chan);
+                addErrorChannel(errChans, chan);
 				return;
 			}
 
@@ -255,7 +316,7 @@ namespace Core.Net {
 				}
 			}
 			catch (Exception e) {
-				errChans.Add(chan);
+                addErrorChannel(errChans, chan);
 				CLogger.Log("[TcpManager]Receive from socket(id:{0}) exception:{1}", chan.proxy.Target, e.Message);
 				return;
 			}
@@ -289,7 +350,7 @@ namespace Core.Net {
 			}
 		}
 
-		private void onSend(SocketChannel chan) {
+        private void onSend(List<SocketChannel> errChans, SocketChannel chan) {
 			SocketBuffer skt = chan.send;
 
 			while (skt.buffers.Count > 0) {
@@ -302,7 +363,7 @@ namespace Core.Net {
 					}
 				}
 				catch (Exception e) {
-					errChans.Add(chan);
+                    addErrorChannel(errChans, chan);
 					CLogger.Log("[TcpManager]Send to socket(id:{0}) exception:{1}", chan.proxy.Target, e.Message);
 					break;
 				}
@@ -311,20 +372,23 @@ namespace Core.Net {
 			}
 		}
 
-		private void onSocket(Socket socket, Action<SocketChannel> action) {
+        private void onSocket(Socket socket, List<SocketChannel> errChans, Action<List<SocketChannel>, SocketChannel> action) {
 			SocketChannel chan = channels.Find(x => x.socket == socket);
 			CAssert.Assert(chan != null);
 
 			errChans.Clear();
-			action(chan);
+            if (!chan.error) {
+                action(errChans, chan);
+            }
 
 			foreach (SocketChannel err in errChans) {
-				closeChannel(err);
+                CAssert.Assert(err.error);
+				removeChannel(err);
 			}
 		}
 
-		private void closeChannel(SocketChannel chan) {
-			chan.socket.Close();
+        // these channels are exception or error, donot need to shutdown again
+        private void removeChannel(SocketChannel chan) {
 			channels.Remove(chan);
 			CLogger.Log("[TcpManager]Remove socket(id:{0})", chan.proxy.Target);
 			chan.proxy.SendCmd(AgentMessage.CLOSE, null);

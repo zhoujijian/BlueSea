@@ -8,23 +8,33 @@ namespace Core {
 		public const int PRESERVE = 1000;
 
 		private int actorid = PRESERVE;
-		private Dictionary<int, IActorContainer> containers = new Dictionary<int, IActorContainer>();
+        private Dictionary<int, IActorMailbox> mailboxes = new Dictionary<int, IActorMailbox>();
 
-		public void Start() { }
+        public void Start() { }
 
 		public int NextActorid() {
 			int nextid = Interlocked.Increment(ref actorid);
 			return nextid;
 		}
 
-		public ActorContext RegActor(IActor actor) {
-			return RegActor(NextActorid(), actor);
-		}
+        public ActorContext Launch<T>() where T : IActor {
+            IActor actor = null;
+            try {
+                actor = Activator.CreateInstance<T>();
+            }
+            catch (Exception ex) {
+                CLogger.Log("Launch actor<{0}> failure, exception:{1}", typeof(T), ex.Message);
+                return null;
+            }
+            return Launch(NextActorid(), actor);
+        }
 
-		public ActorContext RegActor(int id, IActor actor) {
+		public ActorContext Launch(int id, IActor actor) {
 			ActorContext context = CreateContext(id, actor);
-			ActorContainer container = new ActorContainer(context);
-			addContainer(container);
+            ActorMailbox mailbox = new ActorMailbox(context);
+            addMailbox(mailbox);
+            actor.Start();
+
 			return context;
 		}
 
@@ -34,25 +44,38 @@ namespace Core {
 			return context;
 		}
 
-		public void RegContainer(IActorContainer container) {
-			addContainer(container);
+        // You should deal with accidents by yourself
+        // TODO: try to find a better strategy to solve EXIT
+		public void Exit(int id) {
+            lock(mailboxes) {
+                CAssert.Assert(mailboxes.ContainsKey(id));
+                mailboxes.Remove(id);
+            }
 		}
 
 		public void Send(ActorMessage msg) {
-			IActorContainer container = null;
-			lock(containers) {
-				containers.TryGetValue(msg.Target, out container);
-			}
-			CAssert.Assert(container != null, msg.Target.ToString());
-			container.Post(msg);
+            IActorMailbox mailbox = null;
+            lock (mailboxes) {
+                mailboxes.TryGetValue(msg.Target, out mailbox);
+            }
+            CAssert.Assert(mailbox != null, "Send Target:" + msg.Target);
+            mailbox.Post(msg);
 		}
 
-		private void addContainer(IActorContainer container) {
-			int id = container.Context.ID;
-			lock(containers) {
-				CAssert.Assert(!containers.ContainsKey(id));
-				containers.Add(id, container);
-			}			
-		}
+        public Timer Delay(int target, int period, Action callback) {
+            ActorMessage msg = new ActorMessage(ActorMessage.TIMER, 0, target, target, "None", callback);
+            Timer timer = new Timer(_ => {
+                Send(msg);
+            }, null, period, period);
+            return timer;
+        }
+
+        private void addMailbox(IActorMailbox mailbox) {
+            int id = mailbox.Id;
+            lock (mailboxes) {
+                CAssert.Assert(!mailboxes.ContainsKey(id));
+                mailboxes.Add(id, mailbox);
+            }
+        }
 	}
 }

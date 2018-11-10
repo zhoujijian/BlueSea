@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <PropertyGroup>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
@@ -29,6 +29,9 @@
     <PlatformTarget>x86</PlatformTarget>
   </PropertyGroup>
   <ItemGroup>
+    <Reference Include="Google.Protobuf, Version=3.6.1.0, Culture=neutral, PublicKeyToken=a7d26565bac4d604, processorArchitecture=MSIL">
+      <HintPath>..\packages\Google.Protobuf.3.6.1\lib\net45\Google.Protobuf.dll</HintPath>
+    </Reference>
     <Reference Include="System" />
     <Reference Include="ServiceStack.Common">
       <HintPath>..\packages\ServiceStack.Redis.Complete.1.0.0\lib\net35\ServiceStack.Common.dll</HintPath>
@@ -71,12 +74,19 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="ChannelContext.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Actor.cs" />
     <Compile Include="ActorProxy.cs" />
     <Compile Include="ActorSystem.cs" />
     <Compile Include="ActorMessage.cs" />
+    <Compile Include="GoogleProtobufDescriptor.cs" />
+    <Compile Include="RpcDecoder.cs" />
+    <Compile Include="TcpAccepter.cs" />
+    <Compile Include="TcpChannel.cs" />
+    <Compile Include="FixLengthDecoder.cs" />
+    <Compile Include="FixLengthEncoder.cs" />
     <Compile Include="TcpManager.cs" />
     <Compile Include="CUtil.cs" />
     <Compile Include="Agent.cs" />
@@ -88,5 +98,6 @@
   <ItemGroup>
     <None Include="packages.config" />
   </ItemGroup>
+  <ItemGroup />
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
 </Project>

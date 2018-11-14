@@ -1,11 +1,11 @@
 ﻿using System;
 
 namespace Core {
-    public interface IDecoder {
-        void Decode(ChannelContext context, object argument);
+    public interface IMessagePipeSection {
+        void Through(ChannelContext context, object argument);
     }
 
-    public class FixLengthDecoder : IDecoder {
+    public class FixLengthDecoder : IMessagePipeSection {
         private class Block {
             public int length = 0;
             public byte[] buffer = new byte[1024];
@@ -14,7 +14,7 @@ namespace Core {
         private Block block = new Block();
         private static readonly int HeaderSize = 2;
 
-        public void Decode(ChannelContext context, object argument) {
+        public void Through(ChannelContext context, object argument) {
             var buffer = argument as byte[]; // TODO: use ArraySegment
             var offset = 0;
 

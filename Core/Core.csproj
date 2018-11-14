@@ -75,6 +75,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="ChannelContext.cs" />
+    <Compile Include="ChannelEntity.cs" />
     <Compile Include="GameEvent.cs" />
     <Compile Include="GameEventDispatcher.cs" />
     <Compile Include="IService.cs" />
@@ -86,6 +87,8 @@
     <Compile Include="ActorMessage.cs" />
     <Compile Include="GoogleProtobufDescriptor.cs" />
     <Compile Include="RpcDecoder.cs" />
+    <Compile Include="RpcEncoder.cs" />
+    <Compile Include="RpcService.cs" />
     <Compile Include="ServiceAdapter.cs" />
     <Compile Include="TcpAccepter.cs" />
     <Compile Include="TcpChannel.cs" />

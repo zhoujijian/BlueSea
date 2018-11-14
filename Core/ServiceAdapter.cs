@@ -1,8 +1,8 @@
 ﻿namespace Core {
     public class ServiceAdapter : IService {
-        public void OnStart() { }
-        public void OnUpdate() { }        
-        public void OnDestroy() { }
-        public void OnGameEvent(GameEvent evt) { }
+        public virtual void OnStart() { }
+        public virtual void OnUpdate() { }
+        public virtual void OnDestroy() { }
+        public virtual void OnGameEvent(GameEvent evt) { }
     }
 }

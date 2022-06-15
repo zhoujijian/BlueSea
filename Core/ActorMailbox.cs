@@ -12,32 +12,32 @@ namespace Core {
         void Clear();
     }
 
-	public class ActorMailbox : IActorMailbox {
-		private ActorContext context;
-		private Queue<ActorMessage> messages = new Queue<ActorMessage>();
+    public class ActorMailbox : IActorMailbox {
+        private ActorContext context;
+        private Queue<ActorMessage> messages = new Queue<ActorMessage>();
 
         public int Id { get { return context.ID; } }
         public int MessagesCount { get { lock (messages) { return messages.Count; } } }
 
-		public ActorMailbox(ActorContext context) {
-			this.context = context;
-		}
+        public ActorMailbox(ActorContext context) {
+            this.context = context;
+        }
 
-		public void Post(ActorMessage msg) {
-			lock(messages) {
-				messages.Enqueue(msg);
-				if (messages.Count > 1) { return; }
-			}
-			run(msg);
-		}
+        public void Post(ActorMessage msg) {
+            lock(messages) {
+                messages.Enqueue(msg);
+                if (messages.Count > 1) { return; }
+            }
+            run(msg);
+        }
 
-		public void Clear() {
-			lock(messages) {
-				messages.Clear();
-			}
-		}
+        public void Clear() {
+            lock(messages) {
+                messages.Clear();
+            }
+        }
 
-		private void run(ActorMessage msg) {
+        private void run(ActorMessage msg) {
             Task.Run(() => {
                 try {
                     context.RecvCall(msg);
@@ -58,8 +58,7 @@ namespace Core {
                 if (next != null) {
                     run(next);
                 }
-            })
-            .ContinueWith(prevTask => {
+            }).ContinueWith(prevTask => {
                 if (prevTask.Exception != null) {
                     CLogger.Log("Task ({0}) Exception: {1} StackTrace: {2}",
                                 prevTask.Id, prevTask.Exception.Message, prevTask.Exception.StackTrace);
@@ -68,6 +67,6 @@ namespace Core {
                     }
                 }
             });
-		}
-	}
+        }
+    }
 }

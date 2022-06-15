@@ -4,18 +4,18 @@ using System.Collections.Generic;
 using CUtil;
 
 namespace Core {
-	public class ActorSystem {
-		public const int PRESERVE = 1000;
+    public class ActorSystem {
+        public const int PRESERVE = 1000;
 
-		private int actorid = PRESERVE;
+        private int actorid = PRESERVE;
         private Dictionary<int, IActorMailbox> mailboxes = new Dictionary<int, IActorMailbox>();
 
         public void Start() { }
 
-		public int NextActorid() {
-			int nextid = Interlocked.Increment(ref actorid);
-			return nextid;
-		}
+        public int NextActorid() {
+            int nextid = Interlocked.Increment(ref actorid);
+            return nextid;
+        }
 
         public ActorContext Launch<T>() where T : IActor {
             IActor actor = null;
@@ -29,38 +29,38 @@ namespace Core {
             return Launch(NextActorid(), actor);
         }
 
-		public ActorContext Launch(int id, IActor actor) {
-			ActorContext context = CreateContext(id, actor);
+        public ActorContext Launch(int id, IActor actor) {
+            ActorContext context = CreateContext(id, actor);
             ActorMailbox mailbox = new ActorMailbox(context);
             addMailbox(mailbox);
             actor.Start();
 
-			return context;
-		}
+            return context;
+        }
 
-		public ActorContext CreateContext(int id, IActor actor) {
-			ActorContext context = new ActorContext(id, actor, this);
-			actor.Context = context;
-			return context;
-		}
+        public ActorContext CreateContext(int id, IActor actor) {
+            ActorContext context = new ActorContext(id, actor, this);
+            actor.Context = context;
+            return context;
+        }
 
         // You should deal with accidents by yourself
         // TODO: try to find a better strategy to solve EXIT
-		public void Exit(int id) {
+        public void Exit(int id) {
             lock(mailboxes) {
                 CAssert.Assert(mailboxes.ContainsKey(id));
                 mailboxes.Remove(id);
             }
-		}
+        }
 
-		public void Send(ActorMessage msg) {
+        public void Send(ActorMessage msg) {
             IActorMailbox mailbox = null;
             lock (mailboxes) {
                 mailboxes.TryGetValue(msg.Target, out mailbox);
             }
             CAssert.Assert(mailbox != null, "Send Target:" + msg.Target);
             mailbox.Post(msg);
-		}
+        }
 
         public Timer Delay(int target, int period, Action callback) {
             ActorMessage msg = new ActorMessage(ActorMessage.TIMER, 0, target, target, "None", callback);
@@ -77,5 +77,5 @@ namespace Core {
                 mailboxes.Add(id, mailbox);
             }
         }
-	}
+    }
 }

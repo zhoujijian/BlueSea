@@ -16,7 +16,7 @@ namespace Core {
             
             while(true) {
                 var client = await server.AcceptTcpClientAsync();
-                var channel = new TcpChannel(client);
+                var channel = new TcpChannel(client, 4096);
                 await Task.Run(() => channel.Run()); // TODO: catch exception
             }
         }
